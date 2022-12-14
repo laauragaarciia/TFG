@@ -6,6 +6,7 @@
 % clear variables;
 %clear all;
 maxBitNumber=65535;
+disp('Hola');
 
 %% Cargar Radiocrómicas
 filmPath = 'RC1(sin)-buena.tif';
@@ -47,20 +48,18 @@ juntasR(:,:,1,1) = R1R;
 juntasR(:,:,1,2) = R2R;
 juntasR(:,:,1,3) = R3R;
 juntasR(:,:,1,4) = R4R;
-
 % Verde
 juntasR(:,:,2,1) = G1R;
 juntasR(:,:,2,2) = G2R;
 juntasR(:,:,2,3) = G3R;
 juntasR(:,:,2,4) = G4R;
-
 % Azul 
 juntasR(:,:,3,1) = B1R;
 juntasR(:,:,3,2) = B2R;
 juntasR(:,:,3,3) = B3R;
 juntasR(:,:,3,4) = B4R;
 
-%% Desviación estándar de las matrices pixel a pixel de la 4 dimensión
+% Desviación estándar de las matrices pixel a pixel de la 4 dimensión
 desvRR = std(juntasR(:,:,1,:),0,4);
 desvGR = std(juntasR(:,:,2,:),0,4);
 desvBR = std(juntasR(:,:,3,:),0,4);
@@ -72,45 +71,79 @@ mediaBR = mean(juntasR(:,:,3,:),4);
 
 
 
-% Definimos la función para cada uno de los canales
+%% Definimos la función para cada uno de los canales
 aR=0.0450380826239147; bR=2.11956671492532; cR=-3.28368654895324;
 aG=0.0171158657931860; bG=3.02794588913442; cG=-4.75872048307099;
 aB=-0.133044775671637; bB=14.9927317017188; cB=-26.2991652925775;
 
 
-DR = @(mediaRR) cR + bR ./ (mediaRR - aR);
-PVG = @(mediaGR) aG + bG ./ (mediaGR - cG);
-PVB = @(mediaBR) aB + bB ./ (mediaBR - cB);
+DR = @(mediaRR) aR + bR ./ (mediaRR - cR);
+DG = @(mediaGR) aG + bG ./ (mediaGR - cG);
+DB = @(mediaBR) aB + bB ./ (mediaBR - cB);
 
 
-%% Pintamos la dosis por separados
-DR = DR(mediaRR);
-imagesc(DR)
-%imagesc(mediaRR)
+%% Pintamos la dosis por separados (utilizamos los tres canales)
+DosisR = DR(mediaRR);
+figure(1)
+imagesc(DosisR)
 caxis([0 1])
 colorbar
 title('Canal R')
+set(get(colorbar,'title'),'string','Dosis')
 
-PVG = PVG(mediaGR);
-imagesc(PVG)
+DosisG = DG(mediaGR);
+figure(2)
+imagesc(DosisG)
 caxis([0 1])
 colorbar
 title('Canal G')
+set(get(colorbar,'title'),'string','Dosis')
  
-PVB = PVB(mediaBR);
-imagesc(PVB)
+DosisB = DB(mediaBR);
+figure(3)
+imagesc(DosisB)
 caxis([0 1])
 colorbar
 title('canal B')
+set(get(colorbar,'title'),'string','Dosis')
 
-% Obtenemos la dosis mediante una media ponderada y representamos
+%% Obtenemos la dosis mediante una media ponderada y representamos
 % DeltaR=@(PVR) bR.*(desvRR)./(PVR-aR).^2
 % DeltaG=@(PVG) bG.*(desvGR)./(PVG-aG).^2
 % DeltaB=@(PVB) bB.*(desvBR)./(PVB-aB).^2
-DeltaR= bR.*(desvRR)./(DR-aR).^2;
-DeltaG= bG.*(desvGR)./(PVG-aG).^2;
-DeltaB= bB.*(desvBR)./(PVB-aB).^2;
-DT=(DR.*(DeltaR)+PVG.*(DeltaG)+PVB.*(DeltaB))./((DeltaR)+(DeltaG)+(DeltaB));
-imagesc(DT)
+DeltaR= bR.*(desvRR)./(DosisR-cR).^2;
+DeltaG= bG.*(desvGR)./(DosisG-cG).^2;
+DeltaB= bB.*(desvBR)./(DosisB-cB).^2;
+DosisTotalRGB=(DosisR.*(DeltaR)+DosisG.*(DeltaG)+DosisB.*(DeltaB))./((DeltaR)+(DeltaG)+(DeltaB));
+figure(4)
+imagesc(DosisTotalRGB)
 colorbar
-title('Dosis por pixel')
+caxis([0 1])
+title('Dosis por pixel RGB')
+set(get(colorbar,'title'),'string','Dosis')
+%% Utilizando los canales RG media ponderada
+DosisTotalRG=(DosisR.*(DeltaR)+DosisG.*(DeltaG))./((DeltaR)+(DeltaG));
+figure(5)
+imagesc(DosisTotalRG)
+colorbar
+caxis([0 1])
+title('Dosis por pixel RG')
+set(get(colorbar,'title'),'string','Dosis')
+%% Utilizando los canales RG media aritmética
+DosisTotalRG2=(DosisR+DosisG)./2;
+figure(6)
+imagesc(DosisTotalRG2)
+colorbar
+title('Dosis por pixel RG (m.a.)')
+caxis([0 1])
+set(get(colorbar,'title'),'string','Dosis')
+%% Comparación de los métodos
+DesviacionDosisRG=abs((DosisTotalRG-DosisTotalRG2)*100./DosisTotalRG);
+DesviacionDosisRGByRG=abs(DosisTotalRGB-DosisTotalRG)*100./(DosisTotalRGB);
+
+DosismaximaRGB=max(max(DosisTotalRGB));
+DosismaximaRG=max(max(DosisTotalRG));
+DosismaximaRG2=max(max(DosisTotalRG2));
+DosisMaxima=[DosismaximaRGB DosismaximaRG DosismaximaRG2]
+
+
