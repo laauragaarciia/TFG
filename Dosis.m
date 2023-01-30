@@ -6,7 +6,6 @@
 % clear variables;
 %clear all;
 maxBitNumber=65535;
-disp('Hola');
 
 %% Cargar Radiocrómicas
 filmPath = 'RC1(sin)-buena.tif';
